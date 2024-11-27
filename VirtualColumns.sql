@@ -45,47 +45,42 @@ ADD COLUMN broadcast_int INT GENERATED ALWAYS AS (
     (POWER(2, (32 - CAST(SUBSTRING_INDEX(cidr, '/', -1) AS INT))) - 1)
 ) STORED;
 
---liquibase formatted sql
-
--- Changeset user:2-add-columns-h2 dbms:h2
-ALTER TABLE Network
-ADD network_int INT,
-    broadcast_int INT;
-
--- Update network_int and broadcast_int for H2
-UPDATE Network
-SET 
-    network_int = CAST(
-        (CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) * 256 * 256 * 256) +
-        (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS INT) * 256 * 256) +
-        (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS INT) * 256) +
-        CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/', cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS INT)
-        AS INT),
-    broadcast_int = CAST(
-        (CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) * 256 * 256 * 256) +
-        (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS INT) * 256 * 256) +
-        (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS INT) * 256) +
-        CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/', cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS INT) + 
-        (POW(2, (32 - CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))) - 1)
-        AS INT);
-
+#################
 UPDATE Network
 SET 
     network_int = (
-        -- Calculate network address
-        ((CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS BIGINT) << 24) | 
-         (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS BIGINT) << 16) | 
-         (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS BIGINT) << 8) | 
-         CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS BIGINT)))
-        & (4294967295 << (32 - CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))
+        -- Compute the network address
+        (
+            CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS BIGINT) << 24
+        ) +
+        (
+            CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS BIGINT) << 16
+        ) +
+        (
+            CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, 
+                POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS BIGINT) << 8
+        ) +
+        CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, 
+            POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS BIGINT)
+        ) &
+        (4294967295 << (32 - CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))
     ),
     broadcast_int = (
-        -- Calculate broadcast address
-        ((CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS BIGINT) << 24) | 
-         (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS BIGINT) << 16) | 
-         (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS BIGINT) << 8) | 
-         CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS BIGINT)))
-        | (4294967295 >> CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))
+        -- Compute the broadcast address
+        (
+            CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS BIGINT) << 24
+        ) +
+        (
+            CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS BIGINT) << 16
+        ) +
+        (
+            CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, 
+                POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS BIGINT) << 8
+        ) +
+        CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, 
+            POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS BIGINT)
+        ) |
+        (4294967295 >> CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT))
     );
 
 
