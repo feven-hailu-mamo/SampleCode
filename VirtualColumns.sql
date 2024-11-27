@@ -69,23 +69,22 @@ SET
         (POW(2, (32 - CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))) - 1)
         AS INT);
 
-
 UPDATE Network
 SET 
     network_int = (
         -- Calculate network address
-        ((CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) << 24) | 
-         (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS INT) << 16) | 
-         (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS INT) << 8) | 
-         CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS INT))
+        ((CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS BIGINT) << 24) | 
+         (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS BIGINT) << 16) | 
+         (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS BIGINT) << 8) | 
+         CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS BIGINT)))
         & (4294967295 << (32 - CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))
     ),
     broadcast_int = (
         -- Calculate broadcast address
-        ((CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) << 24) | 
-         (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS INT) << 16) | 
-         (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS INT) << 8) | 
-         CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS INT))
+        ((CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS BIGINT) << 24) | 
+         (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS BIGINT) << 16) | 
+         (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS BIGINT) << 8) | 
+         CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS BIGINT)))
         | (4294967295 >> CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))
     );
 
