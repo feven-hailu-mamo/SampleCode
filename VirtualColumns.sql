@@ -45,22 +45,28 @@ ADD COLUMN broadcast_int INT GENERATED ALWAYS AS (
     (POWER(2, (32 - CAST(SUBSTRING_INDEX(cidr, '/', -1) AS INT))) - 1)
 ) STORED;
 
--- Adding the network_int computed column
-ALTER TABLE Network
-ADD COLUMN network_int INT GENERATED ALWAYS AS (
-    (CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) * 256 * 256 * 256) +
-    (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) - 1) AS INT) * 256 * 256) +
-    (CAST(SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) + 1, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) + 1)) - 1) AS INT) * 256) +
-    CAST(SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) + 1)) + 1, POSITION('/' IN cidr) - POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) + 1)) - 1) AS INT)
-) STORED;
+--liquibase formatted sql
 
--- Adding the broadcast_int computed column
+-- Changeset user:2-add-columns-h2 dbms:h2
 ALTER TABLE Network
-ADD COLUMN broadcast_int INT GENERATED ALWAYS AS (
-    (CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) * 256 * 256 * 256) +
-    (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) - 1) AS INT) * 256 * 256) +
-    (CAST(SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) + 1, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) + 1)) - 1) AS INT) * 256) +
-    CAST(SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) + 1)) + 1, POSITION('/' IN cidr) - POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN SUBSTRING(cidr, POSITION('.' IN cidr) + 1)) + 1)) - 1) AS INT) + 
-    (POWER(2, (32 - CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT))) - 1)
-) STORED;
+ADD network_int INT,
+    broadcast_int INT;
+
+-- Update network_int and broadcast_int for H2
+UPDATE Network
+SET 
+    network_int = CAST(
+        (CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) * 256 * 256 * 256) +
+        (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS INT) * 256 * 256) +
+        (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS INT) * 256) +
+        CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/', cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS INT)
+        AS INT),
+    broadcast_int = CAST(
+        (CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) * 256 * 256 * 256) +
+        (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS INT) * 256 * 256) +
+        (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS INT) * 256) +
+        CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/', cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS INT) + 
+        (POW(2, (32 - CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))) - 1)
+        AS INT);
+
 
