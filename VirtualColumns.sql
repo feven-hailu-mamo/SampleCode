@@ -70,25 +70,24 @@ SET
         AS INT);
 
 
--- Create a trigger to automatically update network_int and broadcast_int when the cidr is updated
-CREATE TRIGGER update_network_broadcast BEFORE UPDATE ON Network
-FOR EACH ROW
-BEGIN
-    SET NEW.network_int = CAST(
-        (CAST(SUBSTRING(NEW.cidr, 1, POSITION('.' IN NEW.cidr) - 1) AS INT) * 256 * 256 * 256) +
-        (CAST(SUBSTRING(NEW.cidr, POSITION('.' IN NEW.cidr) + 1, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) - POSITION('.' IN NEW.cidr) - 1) AS INT) * 256 * 256) +
-        (CAST(SUBSTRING(NEW.cidr, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) + 1, POSITION('.', NEW.cidr, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) + 1) - POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) - 1) AS INT) * 256) +
-        CAST(SUBSTRING(NEW.cidr, POSITION('.', NEW.cidr, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) + 1) + 1, POSITION('/', NEW.cidr) - POSITION('.', NEW.cidr, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) + 1) - 1) AS INT)
-        AS INT);
-
-    SET NEW.broadcast_int = CAST(
-        (CAST(SUBSTRING(NEW.cidr, 1, POSITION('.' IN NEW.cidr) - 1) AS INT) * 256 * 256 * 256) +
-        (CAST(SUBSTRING(NEW.cidr, POSITION('.' IN NEW.cidr) + 1, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) - POSITION('.' IN NEW.cidr) - 1) AS INT) * 256 * 256) +
-        (CAST(SUBSTRING(NEW.cidr, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) + 1, POSITION('.', NEW.cidr, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) + 1) - POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) - 1) AS INT) * 256) +
-        CAST(SUBSTRING(NEW.cidr, POSITION('.', NEW.cidr, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) + 1) + 1, POSITION('/', NEW.cidr) - POSITION('.', NEW.cidr, POSITION('.', NEW.cidr, POSITION('.' IN NEW.cidr) + 1) + 1) - 1) AS INT) + 
-        (POW(2, (32 - CAST(SUBSTRING(NEW.cidr, POSITION('/' IN NEW.cidr) + 1) AS INT)))) - 1)
-        AS INT);
-END;
+UPDATE Network
+SET 
+    network_int = (
+        -- Calculate network address
+        ((CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) << 24) | 
+         (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS INT) << 16) | 
+         (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS INT) << 8) | 
+         CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS INT))
+        & (4294967295 << (32 - CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))
+    ),
+    broadcast_int = (
+        -- Calculate broadcast address
+        ((CAST(SUBSTRING(cidr, 1, POSITION('.' IN cidr) - 1) AS INT) << 24) | 
+         (CAST(SUBSTRING(cidr, POSITION('.' IN cidr) + 1, POSITION('.', cidr, POSITION('.' IN cidr) + 1) - POSITION('.' IN cidr) - 1) AS INT) << 16) | 
+         (CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - POSITION('.', cidr, POSITION('.' IN cidr) + 1) - 1) AS INT) << 8) | 
+         CAST(SUBSTRING(cidr, POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) + 1, POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS INT))
+        | (4294967295 >> CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT)))
+    );
 
 
 
