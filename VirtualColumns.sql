@@ -24,3 +24,29 @@ ADD (
     ) VIRTUAL
 )
 ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12]?[0-9])$
+
+
+--H2 computed columns
+ALTER TABLE Network
+ADD COLUMN network_int AS (
+    CAST(
+        (CAST(SUBSTRING_INDEX(cidr, '.', 1) AS INT) * 256 * 256 * 256) +
+        (CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(cidr, '.', 2), '.', -1) AS INT) * 256 * 256) +
+        (CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(cidr, '.', 3), '.', -1) AS INT) * 256) +
+        CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(cidr, '.', 4), '/', 1) AS INT)
+        AS INT
+    )
+);
+
+ALTER TABLE Network
+ADD COLUMN broadcast_int AS (
+    CAST(
+        (CAST(SUBSTRING_INDEX(cidr, '.', 1) AS INT) * 256 * 256 * 256) +
+        (CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(cidr, '.', 2), '.', -1) AS INT) * 256 * 256) +
+        (CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(cidr, '.', 3), '.', -1) AS INT) * 256) +
+        CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(cidr, '.', 4), '/', 1) AS INT) + 
+        (POWER(2, (32 - CAST(SUBSTRING_INDEX(cidr, '/', -1) AS INT))) - 1)
+        AS INT
+    )
+);
+
