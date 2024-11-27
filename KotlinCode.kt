@@ -1,17 +1,13 @@
 import java.math.BigInteger
 import java.net.InetAddress
 
-fun map(cidr: String): Pair<Int, Int> {
-    val (network, prefixLength) = cidr.split("/").let {
-        it[0] to it[1].toInt()
-    }
+fun map(cidr: String): Pair<Long, Long> {
+    val (ip, prefixLength) = cidr.split("/")
+    val ipInt = ByteBuffer.wrap(InetAddress.getByName(ip).address).int.toUInt()
+    val mask = (0xFFFFFFFF.toUInt() shl (32 - prefixLength.toInt()))
 
-    val addressBytes = InetAddress.getByName(network).address
-    val addressAsInt = BigInteger(1, addressBytes).toInt()
+    val network = ipInt and mask
+    val broadcast = network or mask.inv()
 
-    val mask = (1.shl(32) - 1).shl(32 - prefixLength)
-    val lowerBound = addressAsInt and mask
-    val upperBound = lowerBound or mask.inv()
-
-    return Pair(lowerBound, upperBound)
+    return Pair(network.toLong(), broadcast.toLong()) // Convert to Int for storage
 }
