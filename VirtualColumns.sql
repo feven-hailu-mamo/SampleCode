@@ -81,7 +81,10 @@ SET
             POSITION('/' IN cidr) - POSITION('.', cidr, POSITION('.', cidr, POSITION('.' IN cidr) + 1) + 1) - 1) AS BIGINT)
         ) |
         (4294967295 >> CAST(SUBSTRING(cidr, POSITION('/' IN cidr) + 1) AS INT))
+
     );
+^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\/(3[0-2]|[1-2]?[0-9]))?$
+
 
 
 
