@@ -1,0 +1,66 @@
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = BigDecimal("0.75")
+                excludes = [
+                        "**/boot/**",
+                        "**/web/**",
+                        "**/Application*"
+                ]
+            }
+        }
+        rule {
+            limit {
+                counter = "BRANCH"
+                value = "COVEREDRATIO"
+                minimum = BigDecimal("0.5")
+            }
+        }
+    }
+}
+
+tasks.withType(JavaCompile) {
+    sourceCompatibility = jvmVersion
+    targetCompatibility = jvmVersion
+}
+
+tasks.withType(Test) {
+    filter {
+        exclude "**/testutils/**"
+    }
+    useJUnitPlatform()
+}
+
+tasks.withType(JacocoReport) {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, excludes: [
+                    "**/boot/**",
+                    "**/web/**",
+                    "**/Application*"
+            ])
+        }))
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.coverage.exclusions", [
+                "**/boot/**",
+                "**/web/**",
+                "**/Application*"
+        ]
+    }
+}
